@@ -1,0 +1,4 @@
+numpy==1.26.4
+matplotlib==3.9.3
+qikit==1.2.2
+pillow==11.0.0
