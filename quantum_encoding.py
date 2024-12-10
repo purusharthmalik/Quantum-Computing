@@ -1,7 +1,6 @@
 from matplotlib import pyplot as plt
 import streamlit as st
 import numpy as np
-import qiskit
 from qiskit import QuantumCircuit
 from qiskit.visualization import plot_bloch_multivector
 from PIL import Image
@@ -52,31 +51,45 @@ def analyze_quantum_state(statevector):
     }
 
 def quantum_encode_image(image_array, encoding_method):
+    # Create a progress bar
+    progress_bar = st.progress(0)
+    
+    # Prepare the encoding heatmap
     encoding_heatmap = np.zeros_like(image_array, dtype=float)
+    
+    # Total number of pixels for progress calculation
+    total_pixels = image_array.shape[0] * image_array.shape[1]
+    
+    # Iterate through pixels with progress tracking
     for y in range(image_array.shape[0]):
         for x in range(image_array.shape[1]):
+            # Calculate progress
+            current_pixel = y * image_array.shape[1] + x
+            progress = int((current_pixel / total_pixels) * 100)
+            progress_bar.progress(progress)
+            
+            # Encoding based on method
             if encoding_method == 'Amplitude Encoding':
                 qc = quantum_encode_amplitude(image_array[y, x])
                 statevector = Statevector.from_instruction(qc)
-
-                # Using probability of |1⟩ state as heatmap value
                 encoding_heatmap[y, x] = np.abs(statevector[1])**2
             elif encoding_method == 'Phase Encoding':
                 qc = quantum_encode_phase(image_array[y, x])
                 statevector = Statevector.from_instruction(qc)
-
-                # Using the phase as heatmap value
                 encoding_heatmap[y, x] = np.arctan(statevector[1]/statevector[0])
             else:
                 qc = quantum_encode_basis(image_array[y, x])
                 statevector = Statevector.from_instruction(qc)
-
-                # Heatmap values in a binary fashion
                 encoding_heatmap[y, x] = 0 if statevector[0] != 0 else 1
     
+    # Complete the progress bar
+    progress_bar.progress(100)
+    
+    # Create the heatmap visualization
     fig, ax = plt.subplots(figsize=(10, 8))
     im = ax.imshow(encoding_heatmap, cmap='viridis')
     plt.colorbar(im, ax=ax, label='Quantum Encoding Intensity')
+    ax.set_title(f'{encoding_method} Quantum Encoding Heatmap')
     st.pyplot(fig)
 
 def main():
@@ -104,6 +117,9 @@ def main():
     - Simple binary representation
     - Uses X-gate to flip state
     - Ideal for binary or threshold-based data
+    
+    #### Developed By: Purusharth Malik
+                        
     """)
 
     uploaded_file = st.file_uploader("Upload a grayscale image", type=['jpg', 'png', 'jpeg'])
@@ -112,7 +128,7 @@ def main():
         image = Image.open(uploaded_file).convert('L')
         image_array = np.array(image)
 
-        st.image(image, caption="Uploaded Image", use_column_width=True)
+        st.image(image, caption="Uploaded Image", use_container_width=True)
 
         # Selecting a pixel to encode
         st.subheader("Select Pixel for Quantum Encoding")
